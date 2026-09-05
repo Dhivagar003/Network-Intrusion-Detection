@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NIDS Agent — Network Intrusion Detection System</title>
+  <link rel="stylesheet" href="/static/css/style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+</head>
+<body>
+
+<!-- ── Sidebar ──────────────────────────────────────────────────────────────── -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <i class="fa-solid fa-shield-halved brand-icon"></i>
+    <span class="brand-text">NIDS<span class="brand-accent"> Agent</span></span>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="#" class="nav-item active" data-section="dashboard">
+      <i class="fa-solid fa-chart-pie"></i><span>Dashboard</span>
+    </a>
+    <a href="#" class="nav-item" data-section="predict">
+      <i class="fa-solid fa-magnifying-glass-chart"></i><span>Single Predict</span>
+    </a>
+    <a href="#" class="nav-item" data-section="batch">
+      <i class="fa-solid fa-file-csv"></i><span>Batch Upload</span>
+    </a>
+    <a href="#" class="nav-item" data-section="simulate">
+      <i class="fa-solid fa-tower-broadcast"></i><span>Live Simulate</span>
+    </a>
+    <a href="#" class="nav-item" data-section="alerts">
+      <i class="fa-solid fa-triangle-exclamation"></i><span>Alerts</span>
+      <span class="badge" id="alertBadge">0</span>
+    </a>
+    <a href="#" class="nav-item" data-section="chat">
+      <i class="fa-solid fa-robot"></i><span>AI Chat</span>
+    </a>
+    <a href="#" class="nav-item" data-section="about">
+      <i class="fa-solid fa-circle-info"></i><span>About</span>
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <i class="fa-solid fa-circle status-dot" id="statusDot"></i>
+    <span id="statusText">Connecting…</span>
+  </div>
+</aside>
+
+<!-- ── Main ──────────────────────────────────────────────────────────────────── -->
+<main class="main-content">
+
+  <!-- Top bar -->
+  <header class="topbar">
+    <button class="menu-toggle" id="menuToggle">
+      <i class="fa-solid fa-bars"></i>
+    </button>
+    <h1 class="page-title" id="pageTitle">Dashboard</h1>
+    <div class="topbar-actions">
+      <button class="btn btn-ghost" id="refreshBtn" title="Refresh stats">
+        <i class="fa-solid fa-rotate-right"></i>
+      </button>
+      <button class="btn btn-danger-outline" id="clearAlertsBtn" title="Clear alerts">
+        <i class="fa-solid fa-trash"></i> Clear Alerts
+      </button>
+    </div>
+  </header>
+
+  <!-- ═══════════════  SECTION: Dashboard  ═══════════════ -->
+  <section class="section active" id="section-dashboard">
+
+    <!-- KPI cards -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-icon bg-blue"><i class="fa-solid fa-wave-square"></i></div>
+        <div class="kpi-body">
+          <span class="kpi-label">Total Analysed</span>
+          <span class="kpi-value" id="kpi-total">0</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon bg-red"><i class="fa-solid fa-skull-crossbones"></i></div>
+        <div class="kpi-body">
+          <span class="kpi-label">Attacks Detected</span>
+          <span class="kpi-value" id="kpi-attacks">0</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon bg-orange"><i class="fa-solid fa-fire"></i></div>
+        <div class="kpi-body">
+          <span class="kpi-label">DoS</span>
+          <span class="kpi-value" id="kpi-dos">0</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon bg-yellow"><i class="fa-solid fa-radar"></i></div>
+        <div class="kpi-body">
+          <span class="kpi-label">Probe</span>
+          <span class="kpi-value" id="kpi-probe">0</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon bg-purple"><i class="fa-solid fa-user-secret"></i></div>
+        <div class="kpi-body">
+          <span class="kpi-label">R2L / U2R</span>
+          <span class="kpi-value" id="kpi-r2l">0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts row -->
+    <div class="charts-row">
+      <div class="chart-card">
+        <h3 class="chart-title">Attack Distribution</h3>
+        <canvas id="donutChart" width="280" height="280"></canvas>
+        <div id="donutLegend" class="legend"></div>
+      </div>
+      <div class="chart-card flex-2">
+        <h3 class="chart-title">Recent Activity (last 20 predictions)</h3>
+        <canvas id="timelineChart" width="600" height="240"></canvas>
+      </div>
+    </div>
+
+    <!-- Recent alerts table -->
+    <div class="card">
+      <div class="card-header">
+        <h3>Recent Alerts</h3>
+        <span class="tag tag-info" id="alertCount">0 alerts</span>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table" id="alertTable">
+          <thead>
+            <tr><th>#</th><th>Time</th><th>Type</th><th>Confidence</th><th>Severity</th><th>Source</th></tr>
+          </thead>
+          <tbody id="alertTableBody">
+            <tr><td colspan="6" class="empty-row">No alerts yet</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════  SECTION: Single Predict  ═══════════════ -->
+  <section class="section" id="section-predict">
+    <div class="two-col">
+
+      <!-- Form -->
+      <div class="card">
+        <div class="card-header"><h3>Traffic Feature Input</h3></div>
+        <p class="card-sub">Enter network traffic features manually or use preset scenarios.</p>
+
+        <div class="preset-btns">
+          <button class="btn btn-sm" onclick="loadPreset('normal')">Normal</button>
+          <button class="btn btn-sm btn-red" onclick="loadPreset('dos')">DoS Attack</button>
+          <button class="btn btn-sm btn-yellow" onclick="loadPreset('probe')">Probe</button>
+          <button class="btn btn-sm btn-purple" onclick="loadPreset('r2l')">R2L</button>
+          <button class="btn btn-sm btn-dark" onclick="loadPreset('u2r')">U2R</button>
+        </div>
+
+        <div class="form-grid" id="featureForm">
+          <!-- Populated by JS -->
+        </div>
+
+        <button class="btn btn-primary btn-block mt-2" id="predictBtn">
+          <i class="fa-solid fa-wand-magic-sparkles"></i> Analyse Traffic
+        </button>
+      </div>
+
+      <!-- Result panel -->
+      <div class="card result-card" id="resultCard">
+        <div class="card-header"><h3>Prediction Result</h3></div>
+        <div class="result-placeholder" id="resultPlaceholder">
+          <i class="fa-solid fa-shield-halved result-icon"></i>
+          <p>Submit features to see the prediction</p>
+        </div>
+        <div id="resultContent" class="hidden">
+          <div class="verdict" id="verdictBadge"></div>
+          <div class="conf-bar-wrap">
+            <span class="conf-label">Confidence</span>
+            <div class="conf-bar"><div class="conf-fill" id="confFill"></div></div>
+            <span class="conf-value" id="confValue">0%</span>
+          </div>
+          <div class="prob-grid" id="probGrid"></div>
+          <div class="ai-box" id="aiBox">
+            <div class="ai-header">
+              <i class="fa-solid fa-robot"></i>
+              <span>WatsonX AI Analysis</span>
+            </div>
+            <div class="ai-body" id="aiBody">Loading…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════  SECTION: Batch Upload  ═══════════════ -->
+  <section class="section" id="section-batch">
+    <div class="card">
+      <div class="card-header"><h3>Batch CSV Analysis</h3></div>
+      <p class="card-sub">Upload a CSV with NSL-KDD-style features (41 columns). Missing columns are zero-filled.</p>
+
+      <div class="upload-zone" id="uploadZone">
+        <i class="fa-solid fa-cloud-arrow-up upload-icon"></i>
+        <p>Drag &amp; drop CSV here or <label for="csvInput" class="link">browse</label></p>
+        <input type="file" id="csvInput" accept=".csv" hidden />
+        <span class="upload-hint">Max 16 MB</span>
+      </div>
+
+      <div id="batchProgress" class="hidden">
+        <div class="progress-bar"><div class="progress-fill" id="batchFill"></div></div>
+        <p id="batchStatus">Uploading…</p>
+      </div>
+    </div>
+
+    <!-- Batch results -->
+    <div class="card hidden" id="batchResultCard">
+      <div class="card-header">
+        <h3>Batch Results</h3>
+        <button class="btn btn-sm" id="exportBtn"><i class="fa-solid fa-download"></i> Export JSON</button>
+      </div>
+      <div class="kpi-grid mini" id="batchKpis"></div>
+      <div class="chart-card">
+        <canvas id="batchChart" width="600" height="200"></canvas>
+      </div>
+      <div class="table-wrap mt-1">
+        <table class="data-table" id="batchTable">
+          <thead>
+            <tr><th>#</th><th>Label</th><th>Confidence</th><th>Severity</th><th>Attack?</th></tr>
+          </thead>
+          <tbody id="batchTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════  SECTION: Live Simulate  ═══════════════ -->
+  <section class="section" id="section-simulate">
+    <div class="card">
+      <div class="card-header"><h3>Live Traffic Simulation</h3></div>
+      <p class="card-sub">Generates synthetic traffic samples and classifies them in real time.</p>
+      <div class="sim-controls">
+        <button class="btn btn-primary" id="simStartBtn">
+          <i class="fa-solid fa-play"></i> Start
+        </button>
+        <button class="btn btn-danger-outline" id="simStopBtn" disabled>
+          <i class="fa-solid fa-stop"></i> Stop
+        </button>
+        <label class="sim-interval-label">
+          Interval
+          <select id="simInterval" class="select-sm">
+            <option value="1000">1 s</option>
+            <option value="2000" selected>2 s</option>
+            <option value="5000">5 s</option>
+          </select>
+        </label>
+      </div>
+    </div>
+
+    <div class="charts-row">
+      <div class="chart-card">
+        <h3 class="chart-title">Attack Frequency</h3>
+        <canvas id="simPieChart" width="260" height="260"></canvas>
+      </div>
+      <div class="chart-card flex-2">
+        <h3 class="chart-title">Live Feed</h3>
+        <div class="live-feed" id="liveFeed"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════  SECTION: Alerts  ═══════════════ -->
+  <section class="section" id="section-alerts">
+    <div class="card">
+      <div class="card-header">
+        <h3>Alert Log</h3>
+        <span class="tag tag-danger" id="alertLogCount">0</span>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr><th>ID</th><th>Timestamp</th><th>Type</th><th>Confidence</th><th>Severity</th><th>Source</th></tr>
+          </thead>
+          <tbody id="alertLogBody">
+            <tr><td colspan="6" class="empty-row">No alerts</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════  SECTION: AI Chat  ═══════════════ -->
+  <section class="section" id="section-chat">
+    <div class="card chat-card">
+      <div class="card-header">
+        <h3><i class="fa-solid fa-robot"></i> WatsonX Cybersecurity Assistant</h3>
+        <button class="btn btn-sm" id="chatClearBtn" title="Clear conversation">
+          <i class="fa-solid fa-broom"></i> Clear
+        </button>
+      </div>
+      <p class="card-sub">Ask anything about network security, attack types, or NIDS concepts.</p>
+
+      <div class="chat-window" id="chatWindow">
+        <div class="chat-msg assistant">
+          <div class="chat-bubble">
+            Hello! I'm your WatsonX cybersecurity assistant. Ask me about network intrusion types, attack mitigation, NIDS concepts, or anything security-related.
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-input-row">
+        <input type="text" id="chatInput" class="chat-input" placeholder="Ask a security question…" />
+        <button class="btn btn-primary" id="chatSendBtn">
+          <i class="fa-solid fa-paper-plane"></i> Send
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════  SECTION: About  ═══════════════ -->
+  <section class="section" id="section-about">
+    <div class="card about-card">
+      <h2><i class="fa-solid fa-shield-halved"></i> Network Intrusion Detection System</h2>
+      <p>This agent uses a <strong>Random Forest</strong> classifier trained on a synthetic <strong>NSL-KDD</strong>-style dataset to classify network traffic into five categories:</p>
+      <div class="about-grid">
+        <div class="about-item normal">
+          <strong>Normal</strong>
+          <p>Legitimate network traffic with no malicious indicators.</p>
+        </div>
+        <div class="about-item dos">
+          <strong>DoS</strong>
+          <p>Denial-of-Service attacks designed to overwhelm system resources.</p>
+        </div>
+        <div class="about-item probe">
+          <strong>Probe</strong>
+          <p>Surveillance attacks that scan networks to gather information.</p>
+        </div>
+        <div class="about-item r2l">
+          <strong>R2L</strong>
+          <p>Remote-to-Local attacks exploiting remote access vulnerabilities.</p>
+        </div>
+        <div class="about-item u2r">
+          <strong>U2R</strong>
+          <p>User-to-Root attacks escalating user privileges to root access.</p>
+        </div>
+      </div>
+      <hr />
+      <h3>Architecture</h3>
+      <ul class="arch-list">
+        <li><i class="fa-solid fa-server"></i> <strong>Backend:</strong> Flask (Python) REST API</li>
+        <li><i class="fa-solid fa-brain"></i> <strong>ML Model:</strong> Random Forest — 150 trees, trained on 5 000 synthetic NSL-KDD samples</li>
+        <li><i class="fa-solid fa-robot"></i> <strong>AI Explanations:</strong> IBM WatsonX (meta-llama/llama-4-maverick)</li>
+        <li><i class="fa-solid fa-desktop"></i> <strong>Frontend:</strong> Vanilla HTML/CSS/JS dashboard</li>
+      </ul>
+      <hr />
+      <h3>API Endpoints</h3>
+      <div class="api-table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><span class="method get">GET</span></td><td>/api/health</td><td>Health check</td></tr>
+            <tr><td><span class="method get">GET</span></td><td>/api/features</td><td>List feature names</td></tr>
+            <tr><td><span class="method post">POST</span></td><td>/api/predict</td><td>Single prediction</td></tr>
+            <tr><td><span class="method post">POST</span></td><td>/api/predict/batch</td><td>Batch CSV prediction</td></tr>
+            <tr><td><span class="method get">GET</span></td><td>/api/simulate</td><td>Simulate traffic sample</td></tr>
+            <tr><td><span class="method get">GET</span></td><td>/api/alerts</td><td>Fetch alerts</td></tr>
+            <tr><td><span class="method get">GET</span></td><td>/api/stats</td><td>Aggregate statistics</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script src="/static/js/charts.js"></script>
+<script src="/static/js/app.js"></script>
+</body>
+</html>
